@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Geisterhand
+Comment=Screen automation tool with HTTP API
+Exec=geisterhand server
+Terminal=false
+Type=Application
+Categories=Development;Utility;
+Keywords=automation;accessibility;screen;
+NoDisplay=true
