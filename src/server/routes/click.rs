@@ -80,6 +80,7 @@ async fn handle_element_click_inner(body: ElementClickRequest) -> anyhow::Result
         title: body.title.clone(),
         title_contains: body.title_contains.clone(),
         label_contains: body.label.clone(),
+        placeholder_contains: body.placeholder_contains.clone(),
         max_results: Some(1),
         ..Default::default()
     };
@@ -137,6 +138,7 @@ async fn element_click_via_a11y(body: &ElementClickRequest) -> anyhow::Result<El
         title: body.title.clone(),
         title_contains: body.title_contains.clone(),
         label_contains: body.label.clone(),
+        placeholder_contains: body.placeholder_contains.clone(),
         max_results: Some(1),
         ..Default::default()
     };

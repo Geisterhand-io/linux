@@ -1,4 +1,4 @@
-use axum::extract::Query;
+use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::Json;
 use tracing::info;
@@ -6,6 +6,7 @@ use tracing::info;
 use crate::accessibility::service as a11y;
 use crate::models::accessibility::{AccessibilityAction, ElementQuery};
 use crate::models::api::*;
+use crate::server::http::AppState;
 
 pub async fn handle_get(
     Query(params): Query<MenuGetRequest>,
@@ -95,9 +96,10 @@ fn build_menu_item(element: &crate::models::accessibility::UIElementInfo) -> Men
 }
 
 pub async fn handle_trigger(
+    State(state): State<AppState>,
     Json(body): Json<MenuTriggerRequest>,
 ) -> (StatusCode, Json<serde_json::Value>) {
-    match handle_trigger_inner(body).await {
+    match handle_trigger_inner(body, state).await {
         Ok(resp) => (StatusCode::OK, Json(serde_json::to_value(resp).unwrap())),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -106,7 +108,9 @@ pub async fn handle_trigger(
     }
 }
 
-async fn handle_trigger_inner(body: MenuTriggerRequest) -> anyhow::Result<MenuResponse> {
+async fn handle_trigger_inner(body: MenuTriggerRequest, state: AppState) -> anyhow::Result<MenuResponse> {
+    // In run mode, always trigger menus in the background to avoid activating the app
+    let _background = body.background.unwrap_or(state.target_app.is_some());
     if body.path.is_empty() {
         return Ok(MenuResponse {
             success: false,

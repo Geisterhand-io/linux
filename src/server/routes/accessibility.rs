@@ -55,6 +55,7 @@ pub struct FindElementsQueryParams {
     pub title_contains: Option<String>,
     pub label_contains: Option<String>,
     pub value_contains: Option<String>,
+    pub placeholder_contains: Option<String>,
     pub max_results: Option<usize>,
 }
 
@@ -67,6 +68,7 @@ pub async fn handle_find_elements(
         title_contains: params.title_contains,
         label_contains: params.label_contains,
         value_contains: params.value_contains,
+        placeholder_contains: params.placeholder_contains,
         max_results: params.max_results,
     };
     let resp = service::find_elements(params.pid, query).await;

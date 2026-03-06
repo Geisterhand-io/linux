@@ -23,6 +23,7 @@ async fn handle_wait_inner(body: WaitRequest) -> anyhow::Result<WaitResponse> {
         && body.title_contains.is_none()
         && body.label_contains.is_none()
         && body.value_contains.is_none()
+        && body.placeholder_contains.is_none()
         && body.path.is_none()
     {
         return Ok(WaitResponse {
@@ -43,6 +44,7 @@ async fn handle_wait_inner(body: WaitRequest) -> anyhow::Result<WaitResponse> {
         title_contains: body.title_contains.clone(),
         label_contains: body.label_contains.clone(),
         value_contains: body.value_contains.clone(),
+        placeholder_contains: body.placeholder_contains.clone(),
         max_results: Some(1),
     };
 

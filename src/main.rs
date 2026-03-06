@@ -196,7 +196,7 @@ async fn main() -> anyhow::Result<()> {
 
                     let target_app = Some(geisterhand::models::api::TargetApp {
                         pid,
-                        app_name: Some(app),
+                        app_name: Some(app.clone()),
                         desktop_file: None,
                     });
 
@@ -205,8 +205,17 @@ async fn main() -> anyhow::Result<()> {
                         result = http::start_server(port, target_app) => {
                             result?;
                         }
-                        _ = child.wait() => {
-                            eprintln!("Application exited");
+                        status = child.wait() => {
+                            let exit_code = status.as_ref().map(|s| s.code().unwrap_or(-1)).unwrap_or(-1);
+                            let info = serde_json::json!({
+                                "event": if exit_code == 0 { "exited" } else { "crashed" },
+                                "app": app,
+                                "exit_code": exit_code,
+                            });
+                            eprintln!("{}", info);
+                            if exit_code != 0 {
+                                std::process::exit(1);
+                            }
                         }
                     }
                 }

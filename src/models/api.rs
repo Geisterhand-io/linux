@@ -143,6 +143,8 @@ pub struct ElementClickRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub placeholder_contains: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub use_accessibility_action: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub button: Option<MouseButton>,
@@ -199,6 +201,8 @@ pub struct TypeRequest {
     pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title_contains: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub placeholder_contains: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mode: Option<String>,
 }
@@ -300,6 +304,8 @@ pub struct WaitRequest {
     pub label_contains: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value_contains: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub placeholder_contains: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub path: Option<super::accessibility::ElementPath>,
     #[serde(default = "default_timeout_ms")]

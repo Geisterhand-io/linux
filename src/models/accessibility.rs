@@ -39,6 +39,8 @@ pub struct UIElementInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub placeholder_value: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub element_description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub frame: Option<ElementFrame>,
@@ -63,6 +65,8 @@ pub struct CompactElementInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub placeholder_value: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub frame: Option<ElementFrame>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub actions: Option<Vec<String>>,
@@ -83,6 +87,8 @@ pub struct ElementQuery {
     pub label_contains: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value_contains: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub placeholder_contains: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_results: Option<usize>,
 }

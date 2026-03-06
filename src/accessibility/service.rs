@@ -268,6 +268,9 @@ async fn build_element_info(
     // Get value from Text or Value interface
     let value = get_element_value(conn, proxy, &ifaces).await;
 
+    // Get placeholder value from attributes
+    let placeholder_value = get_placeholder_value(proxy).await;
+
     // Get frame from Component interface
     let frame = if ifaces.contains(Interface::Component) {
         get_element_frame(proxy).await
@@ -318,6 +321,7 @@ async fn build_element_info(
         title: name,
         label,
         value,
+        placeholder_value,
         element_description: description,
         frame,
         is_enabled: Some(states.contains(State::Enabled)),
@@ -325,6 +329,12 @@ async fn build_element_info(
         actions,
         children,
     })
+}
+
+/// Get placeholder text from AT-SPI2 attributes (GTK4 exposes "placeholder-text").
+async fn get_placeholder_value(proxy: &AccessibleProxy<'_>) -> Option<String> {
+    let attrs = proxy.get_attributes().await.ok()?;
+    attrs.get("placeholder-text").cloned().filter(|s| !s.is_empty())
 }
 
 /// Get element value from Text or Value interface.
@@ -567,10 +577,11 @@ async fn collect_compact_elements(
     let role = proxy.get_role().await.unwrap_or(Role::Unknown);
     let name = proxy.name().await.ok().filter(|s| !s.is_empty());
     let description = proxy.description().await.ok().filter(|s| !s.is_empty());
+    let placeholder_value = get_placeholder_value(proxy).await;
     let ifaces = proxy.get_interfaces().await.unwrap_or_default();
 
-    // Include if has text or is a meaningful role
-    let has_text = name.is_some() || description.is_some();
+    // Include if has text, placeholder, or is a meaningful role
+    let has_text = name.is_some() || description.is_some() || placeholder_value.is_some();
     let is_meaningful = MEANINGFUL_ROLES.contains(&role);
 
     if has_text || is_meaningful {
@@ -594,6 +605,7 @@ async fn collect_compact_elements(
             role: role.name().to_string(),
             title: name,
             label: description,
+            placeholder_value,
             frame,
             actions,
             depth,
@@ -690,6 +702,7 @@ async fn search_elements(
     let description = proxy.description().await.ok().unwrap_or_default();
     let ifaces = proxy.get_interfaces().await.unwrap_or_default();
     let value = get_element_value(conn, proxy, &ifaces).await;
+    let placeholder_value = get_placeholder_value(proxy).await;
 
     // Check if this element matches the query
     let matches = element_matches_query(
@@ -697,6 +710,7 @@ async fn search_elements(
         &name,
         &description,
         value.as_deref(),
+        placeholder_value.as_deref(),
         query,
     );
 
@@ -726,6 +740,7 @@ async fn search_elements(
                 Some(description.clone())
             },
             value,
+            placeholder_value,
             element_description: if description.is_empty() {
                 None
             } else {
@@ -768,6 +783,7 @@ fn element_matches_query(
     name: &str,
     description: &str,
     value: Option<&str>,
+    placeholder_value: Option<&str>,
     query: &ElementQuery,
 ) -> bool {
     if let Some(ref q_role) = query.role {
@@ -809,12 +825,24 @@ fn element_matches_query(
         }
     }
 
+    if let Some(ref q_placeholder_contains) = query.placeholder_contains {
+        match placeholder_value {
+            Some(p) => {
+                if !p.to_lowercase().contains(&q_placeholder_contains.to_lowercase()) {
+                    return false;
+                }
+            }
+            None => return false,
+        }
+    }
+
     // At least one filter must have been specified
     query.role.is_some()
         || query.title.is_some()
         || query.title_contains.is_some()
         || query.label_contains.is_some()
         || query.value_contains.is_some()
+        || query.placeholder_contains.is_some()
 }
 
 /// Get the focused element.
@@ -867,6 +895,7 @@ async fn find_focused_element(
         let name = proxy.name().await.ok().filter(|s| !s.is_empty());
         let description = proxy.description().await.ok().filter(|s| !s.is_empty());
         let value = get_element_value(conn, proxy, &ifaces).await;
+        let placeholder_value = get_placeholder_value(proxy).await;
         let frame = if ifaces.contains(Interface::Component) {
             get_element_frame(proxy).await
         } else {
@@ -887,6 +916,7 @@ async fn find_focused_element(
             title: name,
             label: description.clone(),
             value,
+            placeholder_value,
             element_description: description,
             frame,
             is_enabled: Some(states.contains(State::Enabled)),
@@ -1154,6 +1184,29 @@ async fn do_named_action(
     // Fallback: do the default action (index 0)
     action.do_action(0).await?;
     Ok(())
+}
+
+/// Set a value on the focused element for a given PID (used in run mode typing).
+/// Falls back gracefully if no focused element is found.
+pub async fn set_value_on_focused_element(pid: i32, value: &str) -> ActionResponse {
+    // Find the focused element via AT-SPI2 state search
+    let focused = get_focused_element(Some(pid)).await;
+    if let Some(element) = focused.element {
+        return perform_action(
+            element.path,
+            AccessibilityAction::SetValue,
+            Some(value.to_string()),
+        )
+        .await;
+    }
+
+    ActionResponse {
+        success: false,
+        action: Some("setValue".to_string()),
+        error: Some(
+            "No focused element found — use /click on a text field first, or pass role/title to /type".to_string(),
+        ),
+    }
 }
 
 /// Find an element's frame (position + size) by ElementPath.
